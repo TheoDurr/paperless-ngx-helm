@@ -1,0 +1,64 @@
+{{- $dataStorage := .Values.dataStorage }}
+{{- $createDataPVC := and (not (empty $dataStorage.requestedSize)) (empty $dataStorage.persistentVolumeClaimName) }}
+{{- if $createDataPVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  {{- if or $dataStorage.keepPvc $dataStorage.annotations }}
+  annotations:
+    {{- if $dataStorage.keepPvc }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+    {{- with $dataStorage.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- include "paperless.labels" . | nindent 4 }}
+    {{- with $dataStorage.labels }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+  name: "{{ include "paperless.fullname" . }}-data"
+spec:
+  accessModes:
+  {{- toYaml $dataStorage.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: "{{ $dataStorage.requestedSize }}"
+  {{- if $dataStorage.className }}
+  storageClass: "{{ $dataStorage.className }}"
+  {{- end }}
+{{- end }}
+
+{{- $mediaStorage := .Values.mediaStorage }}
+{{- $createMediaPVC := and (not (empty $mediaStorage.requestedSize)) (empty $mediaStorage.persistentVolumeClaimName) }}
+{{- if $createMediaPVC }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  {{- if or $mediaStorage.keepPvc $mediaStorage.annotations }}
+  annotations:
+    {{- if $mediaStorage.keepPvc }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+    {{- with $mediaStorage.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+  labels:
+    {{- include "paperless.labels" . | nindent 4 }}
+    {{- with $mediaStorage.labels }}
+    {{- toYaml . | nindent 4}}
+    {{- end }}
+  name: "{{ include "paperless.fullname" . }}-media"
+spec:
+  accessModes:
+  {{- toYaml $mediaStorage.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: "{{ $mediaStorage.requestedSize }}"
+  {{- if $mediaStorage.className }}
+  storageClass: "{{ $mediaStorage.className }}"
+  {{- end }}
+{{- end }}

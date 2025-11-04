@@ -1,0 +1,10 @@
+apiVersion: v2
+name: paperless
+description: Paperless Helm chart for Kubernetes
+maintainers:
+  - name: TheoDurr
+    email: git@theodurr.fr
+
+type: application
+version: 0.1.0
+appVersion: "2.19.3"

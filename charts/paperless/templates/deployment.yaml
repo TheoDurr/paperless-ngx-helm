@@ -1,0 +1,123 @@
+{{- $dataStorage := .Values.dataStorage }}
+{{- $createDataPVC := and (not (empty $dataStorage.requestedSize)) (empty $dataStorage.persistentVolumeClaimName) }}
+{{- $mediaStorage := .Values.mediaStorage }}
+{{- $createMediaPVC := and (not (empty $mediaStorage.requestedSize)) (empty $mediaStorage.persistentVolumeClaimName) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "paperless.fullname" . }}
+  labels:
+    {{- include "paperless.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "paperless.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "paperless.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "paperless.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.security.existingSecret | default (include "paperless.fullname" .) }}"
+                  key: "{{ .Values.security.existingSecretKey | default "secretKey" }}"
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or .Values.config .Values.envFrom }}
+          envFrom:
+            {{- if .Values.config }}
+            - configMapRef:
+                name: "{{ include "paperless.fullname" . }}-config"
+            {{- end }}
+            {{- if .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+          - mountPath: /usr/src/paperless/data
+            name: "{{ $dataStorage.volumeName }}"
+          - mountPath: /usr/src/paperless/media
+            name: "{{ $mediaStorage.volumeName }}"
+      volumes:
+      - name: {{ $dataStorage.volumeName }}
+        {{- if $dataStorage.persistentVolumeClaimName }}
+        persistentVolumeClaim: 
+          claimName: "{{ $dataStorage.persistentVolumeClaimName }}"
+        {{- else if $createDataPVC }}
+        persistentVolumeClaim: 
+          claimName: "{{ printf "%s-data" (include "paperless.fullname" .) }}"
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: {{ $mediaStorage.volumeName }}
+        {{- if $mediaStorage.persistentVolumeClaimName }}
+        persistentVolumeClaim: 
+          claimName: "{{ $mediaStorage.persistentVolumeClaimName }}"
+        {{- else if $createMediaPVC }}
+        persistentVolumeClaim: 
+          claimName: "{{ printf "%s-media" (include "paperless.fullname" .) }}"
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end}}

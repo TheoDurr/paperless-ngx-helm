@@ -1,0 +1,12 @@
+{{- if not (empty .Values.config) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    {{- include "paperless.labels" . | nindent 4 }}
+  name: "{{ include "paperless.fullname" . }}-config"
+data:
+  {{- range $key, $val := .Values.config}}
+  {{ $key | snakecase | upper }}: {{ $val | quote }}
+  {{- end }}
+{{- end}}
