@@ -14,7 +14,9 @@
     {
       "customType": "regex",
       "datasourceTemplate": "docker",
-      "fileMatch": ["charts/paperless/(^|/)Chart\\.yaml$"],
+      "managerFilePatterns": [
+        "/charts/paperless/(^|/)Chart\\.yaml$/"
+      ],
       "matchStrings": [
         "#\\s?renovate: image=(?<depName>.*?)\\s?appVersion:\\s?\\\"?(?<currentValue>[\\w+\\.\\-]*)\""
       ]
