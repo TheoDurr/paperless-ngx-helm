@@ -59,7 +59,7 @@ spec:
             - configMapRef:
                 name: "{{ include "paperless.fullname" . }}-config"
             {{- end }}
-            {{- if .Values.envFrom }}
+            {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- end }}
